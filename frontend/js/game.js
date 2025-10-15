@@ -23,6 +23,7 @@ let gameOver = false;
 let canDrop = true;
 let clownBodies = [];
 let gameScene;
+let mergeQueue = [];
 
 // DOM Elements
 const nameModal = document.getElementById('nameModal');
@@ -77,6 +78,7 @@ function resetGameState() {
     canDrop = true;
     clownBodies = [];
     currentClown = null;
+    mergeQueue = [];
     scoreValue.textContent = '0';
 }
 
@@ -90,10 +92,11 @@ function initGame() {
         parent: 'gameCanvas',
         backgroundColor: '#87CEEB',
         physics: {
-            default: 'arcade',
-            arcade: {
-                gravity: { y: 800 },
-                debug: false
+            default: 'matter',
+            matter: {
+                gravity: { y: 1.2 },
+                debug: false,
+                enableSleeping: false
             }
         },
         scene: {
@@ -110,70 +113,124 @@ function create() {
     
     // Container dimensions
     const wallThickness = 20;
-    const containerY = 150;
-    const containerHeight = 550;
-    const containerBottom = containerY + containerHeight;
+    const containerWidth = 600;
+    const containerHeight = 700;
+    const containerY = 0;
     
-    // Bottom wall
-    const bottom = this.add.rectangle(300, containerBottom - wallThickness/2, 600, wallThickness, 0x8B4513);
-    this.physics.add.existing(bottom, true); // true = static
-    bottom.body.immovable = true;
+    // Create walls with Matter.js
+    const leftWall = this.matter.add.rectangle(
+        wallThickness / 2,
+        containerHeight / 2,
+        wallThickness,
+        containerHeight,
+        { 
+            isStatic: true,
+            friction: 0.1,
+            restitution: 0.5
+        }
+    );
     
-    // Left wall
-    const leftWall = this.add.rectangle(wallThickness/2, containerY + containerHeight/2, wallThickness, containerHeight, 0x8B4513);
-    this.physics.add.existing(leftWall, true);
-    leftWall.body.immovable = true;
+    const rightWall = this.matter.add.rectangle(
+        containerWidth - wallThickness / 2,
+        containerHeight / 2,
+        wallThickness,
+        containerHeight,
+        { 
+            isStatic: true,
+            friction: 0.1,
+            restitution: 0.5
+        }
+    );
     
-    // Right wall  
-    const rightWall = this.add.rectangle(600 - wallThickness/2, containerY + containerHeight/2, wallThickness, containerHeight, 0x8B4513);
-    this.physics.add.existing(rightWall, true);
-    rightWall.body.immovable = true;
+    const floor = this.matter.add.rectangle(
+        containerWidth / 2,
+        containerHeight - wallThickness / 2,
+        containerWidth,
+        wallThickness,
+        { 
+            isStatic: true,
+            friction: 0.5,
+            restitution: 0.3
+        }
+    );
     
-    // Store walls for collision
-    this.containerWalls = [bottom, leftWall, rightWall];
+    // Visual walls
+    this.add.rectangle(wallThickness / 2, containerHeight / 2, wallThickness, containerHeight, 0x8B4513);
+    this.add.rectangle(containerWidth - wallThickness / 2, containerHeight / 2, wallThickness, containerHeight, 0x8B4513);
+    this.add.rectangle(containerWidth / 2, containerHeight - wallThickness / 2, containerWidth, wallThickness, 0x8B4513);
     
     // Danger line
-    const dangerLine = this.add.line(300, containerY + 80, 0, 0, 560, 0, 0xFF0000, 0.5);
-    dangerLine.setLineWidth(3);
+    const dangerY = 150;
+    const dangerLine = this.add.line(300, dangerY, 0, 0, 560, 0, 0xFF0000, 0.8);
+    dangerLine.setLineWidth(4);
     dangerLine.setOrigin(0, 0.5);
     
     // Initialize next clown
     nextClownType = Phaser.Math.Between(0, 4);
     updateNextPreview();
     
-    // Spawn first clown
-    spawnNewClown.call(this);
+    // Spawn preview clown
+    spawnPreviewClown.call(this);
     
-    // Input handlers
+    // Mouse movement for preview
+    this.input.on('pointermove', (pointer) => {
+        if (currentClown && currentClown.isPreview && !gameOver) {
+            const clown = CLOWNS[currentClown.clownType];
+            const minX = wallThickness + clown.size / 2;
+            const maxX = containerWidth - wallThickness - clown.size / 2;
+            currentClown.x = Phaser.Math.Clamp(pointer.x, minX, maxX);
+        }
+    });
+    
+    // Click to drop
     this.input.on('pointerdown', (pointer) => {
-        if (canDrop && !gameOver && pointer.y > containerY) {
+        if (canDrop && !gameOver && currentClown && currentClown.isPreview) {
             dropClown.call(this);
         }
     });
     
-    this.input.on('pointermove', (pointer) => {
-        if (currentClown && !gameOver) {
-            const minX = wallThickness + currentClown.displayWidth / 2;
-            const maxX = 600 - wallThickness - currentClown.displayWidth / 2;
-            currentClown.x = Phaser.Math.Clamp(pointer.x, minX, maxX);
-        }
+    // Collision detection for merging
+    this.matter.world.on('collisionstart', (event) => {
+        event.pairs.forEach(pair => {
+            const bodyA = pair.bodyA;
+            const bodyB = pair.bodyB;
+            
+            // Check if both bodies have game objects
+            if (bodyA.gameObject && bodyB.gameObject) {
+                const objA = bodyA.gameObject;
+                const objB = bodyB.gameObject;
+                
+                // Check if they're the same type and can merge
+                if (objA.clownType === objB.clownType && 
+                    objA.clownType < CLOWNS.length - 1 &&
+                    !objA.markedForMerge && 
+                    !objB.markedForMerge &&
+                    !objA.isPreview &&
+                    !objB.isPreview) {
+                    
+                    // Mark for merge to prevent double-merging
+                    objA.markedForMerge = true;
+                    objB.markedForMerge = true;
+                    
+                    // Queue the merge
+                    mergeQueue.push({ objA, objB });
+                }
+            }
+        });
     });
 }
 
-function spawnNewClown() {
+function spawnPreviewClown() {
     if (gameOver) return;
-
-    const clownType = nextClownType;
-    const clown = CLOWNS[clownType];
     
-    currentClown = this.add.circle(300, 100, clown.size / 2, clown.color);
-    currentClown.setStrokeStyle(3, 0xFFFFFF);
-    currentClown.clownType = clownType;
+    const clown = CLOWNS[nextClownType];
+    const radius = clown.size / 2;
+    
+    // Create preview circle (non-physics)
+    currentClown = this.add.circle(300, 80, radius, clown.color);
+    currentClown.setStrokeStyle(3, 0xFFFFFF, 0.8);
+    currentClown.clownType = nextClownType;
     currentClown.isPreview = true;
-    
-    // Update next clown
-    nextClownType = Phaser.Math.Between(0, Math.min(4, clownType + 2));
-    updateNextPreview();
 }
 
 function updateNextPreview() {
@@ -191,171 +248,175 @@ function updateNextPreview() {
 }
 
 function dropClown() {
-    if (!currentClown || gameOver || !canDrop) return;
-
+    if (!currentClown || !canDrop || gameOver) return;
+    
     canDrop = false;
+    
     const clownType = currentClown.clownType;
+    const clown = CLOWNS[clownType];
     const x = currentClown.x;
     const y = currentClown.y;
-    const clown = CLOWNS[clownType];
-
+    const radius = clown.size / 2;
+    
     // Remove preview
     currentClown.destroy();
-
-    // Create physics body
-    const droppedClown = this.add.circle(x, y, clown.size / 2, clown.color);
-    droppedClown.setStrokeStyle(3, 0xFFFFFF);
+    currentClown = null;
     
-    this.physics.add.existing(droppedClown);
-    droppedClown.body.setCircle(clown.size / 2);
-    droppedClown.body.setBounce(0.3);
-    droppedClown.body.setCollideWorldBounds(false);
-    droppedClown.body.setDrag(0);
-    droppedClown.body.setMaxVelocity(1000, 1000);
-    
-    droppedClown.clownType = clownType;
-    droppedClown.merging = false;
-    droppedClown.dangerTimer = 0;
-    
-    // IMPORTANT: Add colliders BEFORE adding to array
-    // Collide with all walls
-    this.containerWalls.forEach(wall => {
-        this.physics.add.collider(droppedClown, wall);
+    // Create Matter.js physics body
+    const body = this.matter.add.circle(x, y, radius, {
+        restitution: 0.5,  // Bounciness
+        friction: 0.1,
+        frictionAir: 0.01,
+        density: 0.001
     });
     
-    // Collide with all existing clowns
-    clownBodies.forEach(otherClown => {
-        if (otherClown.active) {
-            this.physics.add.collider(droppedClown, otherClown);
-            this.physics.add.overlap(droppedClown, otherClown, () => {
-                checkMerge.call(this, droppedClown, otherClown);
-            }, null, this);
+    // Create visual representation
+    const visual = this.add.circle(x, y, radius, clown.color);
+    visual.setStrokeStyle(3, 0xFFFFFF);
+    
+    // Link visual to physics body
+    body.gameObject = visual;
+    visual.body = body;
+    visual.clownType = clownType;
+    visual.markedForMerge = false;
+    visual.isPreview = false;
+    visual.dangerTimer = 0;
+    
+    // Add to tracking array
+    clownBodies.push(visual);
+    
+    // Update visual position every frame
+    this.events.on('update', () => {
+        if (visual && visual.active && body && body.position) {
+            visual.x = body.position.x;
+            visual.y = body.position.y;
+            visual.rotation = body.angle;
         }
     });
     
-    // Now add to array
-    clownBodies.push(droppedClown);
-
-    // Spawn next clown after delay
-    this.time.delayedCall(300, () => {
+    // Prepare next clown
+    const currentType = clownType;
+    nextClownType = Phaser.Math.Between(0, Math.min(4, currentType + 1));
+    updateNextPreview();
+    
+    // Allow dropping again after delay
+    this.time.delayedCall(400, () => {
         canDrop = true;
-        spawnNewClown.call(this);
+        spawnPreviewClown.call(this);
     });
 }
 
-function checkMerge(clownA, clownB) {
-    if (!clownA || !clownB) return;
-    if (!clownA.active || !clownB.active) return;
-    if (clownA.merging || clownB.merging) return;
-    if (clownA.clownType !== clownB.clownType) return;
-    if (clownA.clownType >= CLOWNS.length - 1) return;
+function processMerges() {
+    if (mergeQueue.length === 0 || gameOver) return;
     
-    // Check if they're actually touching (close enough)
-    const dist = Phaser.Math.Distance.Between(clownA.x, clownA.y, clownB.x, clownB.y);
-    const combinedRadius = clownA.displayWidth / 2 + clownB.displayWidth / 2;
+    const merge = mergeQueue.shift();
+    const { objA, objB } = merge;
     
-    if (dist < combinedRadius * 0.9) {
-        mergeClowns.call(this, clownA, clownB);
-    }
-}
-
-function mergeClowns(clownA, clownB) {
-    if (!clownA || !clownB) return;
-    if (!clownA.active || !clownB.active) return;
-    if (clownA.merging || clownB.merging) return;
-    if (gameOver) return;
+    // Safety checks
+    if (!objA || !objB || !objA.active || !objB.active) return;
+    if (!objA.body || !objB.body) return;
     
-    // Mark as merging
-    clownA.merging = true;
-    clownB.merging = true;
-
-    const newType = clownA.clownType + 1;
+    const newType = objA.clownType + 1;
+    if (newType >= CLOWNS.length) return;
+    
     const newClown = CLOWNS[newType];
+    const newRadius = newClown.size / 2;
+    
+    // Calculate merge position (weighted average)
+    const mergeX = (objA.body.position.x + objB.body.position.x) / 2;
+    const mergeY = (objA.body.position.y + objB.body.position.y) / 2;
     
     // Add score
     score += newClown.score;
     scoreValue.textContent = score;
-
-    // Calculate merge position
-    const x = (clownA.x + clownB.x) / 2;
-    const y = (clownA.y + clownB.y) / 2;
-
-    // Remove from tracking array
-    const indexA = clownBodies.indexOf(clownA);
-    const indexB = clownBodies.indexOf(clownB);
+    
+    // Remove old bodies from tracking
+    const indexA = clownBodies.indexOf(objA);
+    const indexB = clownBodies.indexOf(objB);
     if (indexA > -1) clownBodies.splice(indexA, 1);
     if (indexB > -1) clownBodies.splice(indexB, 1);
     
-    // Destroy old clowns
-    clownA.destroy();
-    clownB.destroy();
-
-    // Create merged clown
-    const merged = this.add.circle(x, y, newClown.size / 2, newClown.color);
-    merged.setStrokeStyle(3, 0xFFFFFF);
+    // Remove old physics bodies
+    gameScene.matter.world.remove(objA.body);
+    gameScene.matter.world.remove(objB.body);
+    objA.destroy();
+    objB.destroy();
     
-    this.physics.add.existing(merged);
-    merged.body.setCircle(newClown.size / 2);
-    merged.body.setBounce(0.2);
-    merged.body.setMass(1);
+    // Create new merged ball
+    const newBody = gameScene.matter.add.circle(mergeX, mergeY, newRadius, {
+        restitution: 0.5,
+        friction: 0.1,
+        frictionAir: 0.01,
+        density: 0.001
+    });
     
-    merged.clownType = newType;
-    merged.merging = false;
-    merged.dangerTimer = 0;
-    clownBodies.push(merged);
-
-    // Add collisions with walls
-    for (let wall of this.containerWalls) {
-        this.physics.add.collider(merged, wall);
-    }
+    const newVisual = gameScene.add.circle(mergeX, mergeY, newRadius, newClown.color);
+    newVisual.setStrokeStyle(3, 0xFFFFFF);
     
-    // Add collisions with existing clowns
-    for (let otherClown of clownBodies) {
-        if (otherClown !== merged && otherClown.active) {
-            this.physics.add.collider(merged, otherClown);
-            this.physics.add.overlap(merged, otherClown, () => {
-                checkMerge.call(this, merged, otherClown);
-            }, null, this);
+    newBody.gameObject = newVisual;
+    newVisual.body = newBody;
+    newVisual.clownType = newType;
+    newVisual.markedForMerge = false;
+    newVisual.isPreview = false;
+    newVisual.dangerTimer = 0;
+    
+    clownBodies.push(newVisual);
+    
+    // Update visual position
+    gameScene.events.on('update', () => {
+        if (newVisual && newVisual.active && newBody && newBody.position) {
+            newVisual.x = newBody.position.x;
+            newVisual.y = newBody.position.y;
+            newVisual.rotation = newBody.angle;
         }
-    }
-
-    // Visual feedback
-    this.tweens.add({
-        targets: merged,
-        scaleX: 1.2,
-        scaleY: 1.2,
+    });
+    
+    // Merge animation
+    gameScene.tweens.add({
+        targets: newVisual,
+        scaleX: 1.3,
+        scaleY: 1.3,
         duration: 150,
         yoyo: true,
-        ease: 'Sine.easeInOut'
+        ease: 'Back.easeOut'
     });
 }
 
 function update() {
     if (gameOver) return;
-
-    const dangerY = 230;
     
-    // Clean up destroyed clowns
-    clownBodies = clownBodies.filter(clown => clown && clown.active);
+    // Process any pending merges
+    if (mergeQueue.length > 0) {
+        processMerges();
+    }
     
-    for (let clown of clownBodies) {
-        if (!clown || !clown.active || !clown.body) continue;
+    // Check for game over
+    const dangerY = 150;
+    let dangerousClown = false;
+    
+    clownBodies.forEach(clown => {
+        if (!clown || !clown.active || !clown.body) return;
         
-        const speed = Math.abs(clown.body.velocity.y);
+        const velocityY = Math.abs(clown.body.velocity.y);
         
-        if (clown.y < dangerY && speed < 10) {
+        // Check if clown is above danger line and nearly stopped
+        if (clown.y < dangerY && velocityY < 0.5) {
             if (!clown.dangerTimer) {
                 clown.dangerTimer = 0;
             }
             clown.dangerTimer++;
             
+            // Game over after ~1 second
             if (clown.dangerTimer > 60) {
-                endGame.call(this);
-                break;
+                dangerousClown = true;
             }
         } else {
             clown.dangerTimer = 0;
         }
+    });
+    
+    if (dangerousClown) {
+        endGame();
     }
 }
 

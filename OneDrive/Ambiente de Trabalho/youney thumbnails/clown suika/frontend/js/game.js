@@ -179,7 +179,7 @@ function initGame() {
         width: maxWidth,
         height: maxHeight,
         parent: 'gameCanvas',
-        backgroundColor: '#000000',
+        transparent: true,
         physics: {
             default: 'matter',
             matter: {
@@ -203,7 +203,7 @@ function preload() {
         this.load.image(`clown-${index}`, clown.image);
     });
     this.load.image('van', 'images/van.png');
-    this.load.image('container', 'images/container.svg'); // Load container image
+    this.load.image('container', 'images/container.png'); // Load your custom container
 }
 
 function create() {
@@ -212,59 +212,24 @@ function create() {
     const containerWidth = this.game.config.width;
     const containerHeight = this.game.config.height;
     
-    // 3D Container dimensions (like Suika game)
+    // Container dimensions
     const boxWidth = containerWidth * 0.75;
     const boxHeight = containerHeight * 0.85;
     const boxX = containerWidth / 2;
     const boxY = containerHeight * 0.55;
     
-    const wallThickness = 20;
+    const wallThickness = 27;
     const topMargin = 80;
     
-    // Create 3D-looking box container
-    const graphics = this.make.graphics({ x: 0, y: 0, add: true });
-    
-    // Draw 3D box (front view with perspective)
     const halfWidth = boxWidth / 2;
     const halfHeight = boxHeight / 2;
     
-    // Back shadow
-    graphics.fillStyle(0x000000, 0.3);
-    graphics.fillRect(boxX - halfWidth + 5, boxY - halfHeight + 5, boxWidth, boxHeight);
+    // Create container sprite from your custom image (BACKGROUND - depth 0)
+    const containerSprite = this.add.sprite(boxX, boxY, 'container');
+    containerSprite.setDisplaySize(boxWidth, boxHeight);
+    containerSprite.setDepth(0); // Behind everything else
     
-    // Main box body - beige/tan color like Suika
-    graphics.fillStyle(0xE8D4B8, 1);
-    graphics.fillRect(boxX - halfWidth, boxY - halfHeight, boxWidth, boxHeight);
-    
-    // Top rim (darker)
-    graphics.fillStyle(0xC4A882, 1);
-    graphics.fillRect(boxX - halfWidth - 10, boxY - halfHeight - 15, boxWidth + 20, 20);
-    
-    // Top rim highlight
-    graphics.fillStyle(0xF5E6D3, 0.6);
-    graphics.fillRect(boxX - halfWidth - 8, boxY - halfHeight - 13, boxWidth + 16, 8);
-    
-    // Left wall shadow
-    graphics.fillStyle(0x9B8565, 1);
-    graphics.fillRect(boxX - halfWidth, boxY - halfHeight, wallThickness, boxHeight);
-    
-    // Right wall shadow
-    graphics.fillStyle(0x9B8565, 1);
-    graphics.fillRect(boxX + halfWidth - wallThickness, boxY - halfHeight, wallThickness, boxHeight);
-    
-    // Bottom floor
-    graphics.fillStyle(0x8B7355, 1);
-    graphics.fillRect(boxX - halfWidth, boxY + halfHeight - wallThickness, boxWidth, wallThickness);
-    
-    // 3D depth lines
-    graphics.lineStyle(2, 0x6B5645, 0.5);
-    graphics.strokeRect(boxX - halfWidth, boxY - halfHeight, boxWidth, boxHeight);
-    
-    // Inner highlight for 3D effect
-    graphics.lineStyle(1, 0xFFFFFF, 0.2);
-    graphics.strokeRect(boxX - halfWidth + 2, boxY - halfHeight + 2, boxWidth - 4, boxHeight - 4);
-    
-    // Physics walls - THICKER FLOOR TO PREVENT FALLING THROUGH
+    // Physics walls - invisible but functional
     const leftWall = this.matter.add.rectangle(
         boxX - halfWidth + wallThickness/2, 
         boxY, 
@@ -370,14 +335,14 @@ function spawnPreviewClown() {
     if (!vanSprite) {
         vanSprite = gameScene.add.sprite(startX, startY - 35, 'van');
         vanSprite.setDisplaySize(60, 40);
-        vanSprite.setDepth(1000);
+        vanSprite.setDepth(1000); // Above container and clowns
     }
     
     // Create preview ball
     const preview = gameScene.add.sprite(startX, startY, `clown-${nextClownType}`);
     preview.setDisplaySize(clown.size, clown.size);
     preview.setAlpha(0.8);
-    preview.setDepth(999);
+    preview.setDepth(999); // Above container but below van
     
     preview.clownType = nextClownType;
     preview.isPreview = true;
@@ -418,7 +383,7 @@ function dropClown() {
     // Create physics ball with Matter.js
     const ball = gameScene.add.sprite(x, y, `clown-${clownType}`);
     ball.setDisplaySize(clown.size, clown.size);
-    ball.setDepth(100);
+    ball.setDepth(100); // Above container (depth 0) but below van/preview (999-1000)
     
     const radius = (clown.size / 2) * clown.hitboxScale;
     
@@ -432,7 +397,6 @@ function dropClown() {
     });
     
     ball.setData('body', physicsBody);
-    // Allow natural rotation for smooth physics
     
     ball.clownType = clownType;
     ball.canMerge = true;
@@ -499,7 +463,7 @@ function handleClownCollision(obj1, obj2) {
     // Create new merged ball
     const newBall = gameScene.add.sprite(mergeX, mergeY, `clown-${newType}`);
     newBall.setDisplaySize(newClown.size, newClown.size);
-    newBall.setDepth(100);
+    newBall.setDepth(100); // Same depth as other clown balls
     
     const radius = (newClown.size / 2) * newClown.hitboxScale;
     
@@ -512,7 +476,6 @@ function handleClownCollision(obj1, obj2) {
     });
     
     gameScene.matter.body.setVelocity(physicsBody, { x: 0, y: -3 });
-    // Allow natural rotation
     
     newBall.setData('body', physicsBody);
     newBall.clownType = newType;

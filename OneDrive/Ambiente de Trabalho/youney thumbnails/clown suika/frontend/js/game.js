@@ -1,17 +1,16 @@
 // Clown Configuration with images
-// hitboxScale: adjust this per clown for perfect hitbox matching (test with debug mode)
 const CLOWNS = [
-    { name: 'Tessa', size: 30, color: 0xFF6B6B, score: 1, image: 'images/tessa.png', hitboxScale: 1.92 },
-    { name: 'Twinkles', size: 35, color: 0xFFA07A, score: 3, image: 'images/twinkles.png', hitboxScale: 2.32 },
-    { name: 'Reina', size: 40, color: 0xFFD93D, score: 6, image: 'images/reina.png', hitboxScale: 2.45 },
-    { name: 'Osvaldo', size: 45, color: 0x95E1D3, score: 10, image: 'images/osvaldo.png', hitboxScale: 2.71 },
-    { name: 'Hazel', size: 50, color: 0x6BCB77, score: 15, image: 'images/hazel.png', hitboxScale: 2.77 },
-    { name: 'Mumbles', size: 55, color: 0x4D96FF, score: 21, image: 'images/mumbles.png', hitboxScale: 2.81 },
-    { name: 'Sneaky', size: 60, color: 0x9D84B7, score: 28, image: 'images/sneaky.png', hitboxScale: 3.42 },
-    { name: 'Wendy', size: 65, color: 0xFF6FB5, score: 36, image: 'images/wendy.png', hitboxScale: 3.53 },
-    { name: 'Chatty', size: 70, color: 0xF9A826, score: 45, image: 'images/chatty.png', hitboxScale: 3.67 },
-    { name: 'Cups', size: 75, color: 0x00D9FF, score: 55, image: 'images/cups.png', hitboxScale: 3.82 },
-    { name: 'Kirk', size: 80, color: 0xFF0080, score: 66, image: 'images/kirk.png', hitboxScale: 4.02 }
+    { name: 'Tessa', size: 30, color: 0xFF6B6B, score: 1, image: 'images/tessa.png', hitboxScale: 0.95 },
+    { name: 'Twinkles', size: 35, color: 0xFFA07A, score: 3, image: 'images/twinkles.png', hitboxScale: 0.95 },
+    { name: 'Reina', size: 40, color: 0xFFD93D, score: 6, image: 'images/reina.png', hitboxScale: 0.95 },
+    { name: 'Osvaldo', size: 45, color: 0x95E1D3, score: 10, image: 'images/osvaldo.png', hitboxScale: 0.95 },
+    { name: 'Hazel', size: 50, color: 0x6BCB77, score: 15, image: 'images/hazel.png', hitboxScale: 0.95 },
+    { name: 'Mumbles', size: 55, color: 0x4D96FF, score: 21, image: 'images/mumbles.png', hitboxScale: 0.95 },
+    { name: 'Sneaky', size: 60, color: 0x9D84B7, score: 28, image: 'images/sneaky.png', hitboxScale: 0.95 },
+    { name: 'Wendy', size: 65, color: 0xFF6FB5, score: 36, image: 'images/wendy.png', hitboxScale: 0.95 },
+    { name: 'Chatty', size: 70, color: 0xF9A826, score: 45, image: 'images/chatty.png', hitboxScale: 0.95 },
+    { name: 'Cups', size: 75, color: 0x00D9FF, score: 55, image: 'images/cups.png', hitboxScale: 0.95 },
+    { name: 'Kirk', size: 80, color: 0xFF0080, score: 66, image: 'images/kirk.png', hitboxScale: 0.95 }
 ];
 
 // Game variables
@@ -40,7 +39,7 @@ const playerNameInput = document.getElementById('playerName');
 const startButton = document.getElementById('startButton');
 const gameOverModal = document.getElementById('gameOverModal');
 const restartButton = document.getElementById('restartButton');
-const scoreValue = document.getElementById('scoreValue');
+const scoreValues = document.querySelectorAll('#scoreValue');
 const bestScoreValue = document.getElementById('bestScore');
 const nextClownPreview = document.getElementById('nextClownPreview');
 
@@ -57,18 +56,12 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function initAudio() {
-    // Create audio context for game sounds
     try {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        
-        // Drop sound - short beep
         sounds.drop = audioContext;
-        
-        // Merge sounds - different pitches for different merges
         for (let i = 0; i < 11; i++) {
             sounds.merge.push(audioContext);
         }
-        
         sounds.gameOver = audioContext;
     } catch (e) {
         console.log('Audio context not available');
@@ -115,7 +108,21 @@ function playSound(type, index = 0) {
     }
 }
 
-// Start game on button click
+function updateScore(newScore) {
+    score = newScore;
+    scoreValues.forEach(el => {
+        if (el) el.textContent = score;
+    });
+    
+    if (score > bestScore) {
+        bestScore = score;
+        if (bestScoreValue) {
+            bestScoreValue.textContent = bestScore;
+        }
+        localStorage.setItem('bestScore', bestScore.toString());
+    }
+}
+
 startButton.addEventListener('click', () => {
     playerName = playerNameInput.value.trim();
     
@@ -134,14 +141,12 @@ startButton.addEventListener('click', () => {
     initGame();
 });
 
-// Enter key to start
 playerNameInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
         startButton.click();
     }
 });
 
-// Restart game
 restartButton.addEventListener('click', () => {
     gameOverModal.style.display = 'none';
     
@@ -154,13 +159,12 @@ restartButton.addEventListener('click', () => {
 });
 
 function resetGameState() {
-    score = 0;
+    updateScore(0);
     gameOver = false;
     canDrop = true;
     clownBodies = [];
     currentClown = null;
     vanSprite = null;
-    scoreValue.textContent = '0';
 }
 
 function initGame() {
@@ -177,10 +181,11 @@ function initGame() {
         parent: 'gameCanvas',
         backgroundColor: '#000000',
         physics: {
-            default: 'arcade',
-            arcade: {
-                gravity: { y: 1000 },
-                debug: true // ⭐ CHANGE THIS TO true TO SEE HITBOXES, false TO HIDE THEM
+            default: 'matter',
+            matter: {
+                gravity: { y: 1.2 },
+                debug: false,
+                enableSleeping: false
             }
         },
         scene: {
@@ -198,6 +203,7 @@ function preload() {
         this.load.image(`clown-${index}`, clown.image);
     });
     this.load.image('van', 'images/van.png');
+    this.load.image('container', 'images/container.svg'); // Load container image
 }
 
 function create() {
@@ -205,87 +211,112 @@ function create() {
     
     const containerWidth = this.game.config.width;
     const containerHeight = this.game.config.height;
-    const padding = 20;
-    const wallThickness = 15;
     
-    // Draw fancy container with shadow effect
-    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    // 3D Container dimensions (like Suika game)
+    const boxWidth = containerWidth * 0.75;
+    const boxHeight = containerHeight * 0.85;
+    const boxX = containerWidth / 2;
+    const boxY = containerHeight * 0.55;
     
-    // Outer shadow
+    const wallThickness = 20;
+    const topMargin = 80;
+    
+    // Create 3D-looking box container
+    const graphics = this.make.graphics({ x: 0, y: 0, add: true });
+    
+    // Draw 3D box (front view with perspective)
+    const halfWidth = boxWidth / 2;
+    const halfHeight = boxHeight / 2;
+    
+    // Back shadow
     graphics.fillStyle(0x000000, 0.3);
-    graphics.fillRect(padding + 3, padding + 3, containerWidth - padding * 2, containerHeight - padding * 2);
+    graphics.fillRect(boxX - halfWidth + 5, boxY - halfHeight + 5, boxWidth, boxHeight);
     
-    // Main container body (gradient-like effect with layers)
-    graphics.fillStyle(0x8B6F47, 1);
-    graphics.fillRect(padding, padding, containerWidth - padding * 2, containerHeight - padding * 2);
+    // Main box body - beige/tan color like Suika
+    graphics.fillStyle(0xE8D4B8, 1);
+    graphics.fillRect(boxX - halfWidth, boxY - halfHeight, boxWidth, boxHeight);
     
-    // Inner highlight
-    graphics.fillStyle(0xA0815F, 0.6);
-    graphics.fillRect(padding + 2, padding + 2, containerWidth - padding * 2 - 4, 8);
+    // Top rim (darker)
+    graphics.fillStyle(0xC4A882, 1);
+    graphics.fillRect(boxX - halfWidth - 10, boxY - halfHeight - 15, boxWidth + 20, 20);
     
-    // Border - beveled effect
-    graphics.lineStyle(3, 0x5C4033, 1);
-    graphics.strokeRect(padding, padding, containerWidth - padding * 2, containerHeight - padding * 2);
+    // Top rim highlight
+    graphics.fillStyle(0xF5E6D3, 0.6);
+    graphics.fillRect(boxX - halfWidth - 8, boxY - halfHeight - 13, boxWidth + 16, 8);
     
-    graphics.lineStyle(1, 0xC4A57B, 0.4);
-    graphics.strokeRect(padding + 2, padding + 2, containerWidth - padding * 2 - 4, containerHeight - padding * 2 - 4);
+    // Left wall shadow
+    graphics.fillStyle(0x9B8565, 1);
+    graphics.fillRect(boxX - halfWidth, boxY - halfHeight, wallThickness, boxHeight);
     
-    graphics.generateTexture('boxContainer', containerWidth, containerHeight);
-    graphics.destroy();
+    // Right wall shadow
+    graphics.fillStyle(0x9B8565, 1);
+    graphics.fillRect(boxX + halfWidth - wallThickness, boxY - halfHeight, wallThickness, boxHeight);
     
-    const boxBG = this.add.image(containerWidth / 2, containerHeight / 2, 'boxContainer');
-    boxBG.setDepth(0);
+    // Bottom floor
+    graphics.fillStyle(0x8B7355, 1);
+    graphics.fillRect(boxX - halfWidth, boxY + halfHeight - wallThickness, boxWidth, wallThickness);
     
-    // Create walls
-    const walls = this.physics.add.staticGroup();
+    // 3D depth lines
+    graphics.lineStyle(2, 0x6B5645, 0.5);
+    graphics.strokeRect(boxX - halfWidth, boxY - halfHeight, boxWidth, boxHeight);
     
-    const playAreaLeft = padding + wallThickness;
-    const playAreaRight = containerWidth - padding - wallThickness;
-    const playAreaTop = padding + wallThickness;
-    const playAreaBottom = containerHeight - padding - wallThickness;
+    // Inner highlight for 3D effect
+    graphics.lineStyle(1, 0xFFFFFF, 0.2);
+    graphics.strokeRect(boxX - halfWidth + 2, boxY - halfHeight + 2, boxWidth - 4, boxHeight - 4);
     
-    // Left wall
-    const leftWall = this.add.rectangle(playAreaLeft, containerHeight / 2, wallThickness, containerHeight, 0x654321);
-    this.physics.add.existing(leftWall, true);
-    walls.add(leftWall);
+    // Physics walls - THICKER FLOOR TO PREVENT FALLING THROUGH
+    const leftWall = this.matter.add.rectangle(
+        boxX - halfWidth + wallThickness/2, 
+        boxY, 
+        wallThickness, 
+        boxHeight + 100,
+        { isStatic: true, friction: 0.8, restitution: 0.3 }
+    );
     
-    // Right wall
-    const rightWall = this.add.rectangle(playAreaRight, containerHeight / 2, wallThickness, containerHeight, 0x654321);
-    this.physics.add.existing(rightWall, true);
-    walls.add(rightWall);
+    const rightWall = this.matter.add.rectangle(
+        boxX + halfWidth - wallThickness/2, 
+        boxY, 
+        wallThickness, 
+        boxHeight + 100,
+        { isStatic: true, friction: 0.8, restitution: 0.3 }
+    );
     
-    // Floor
-    const floor = this.add.rectangle(containerWidth / 2, playAreaBottom, containerWidth, wallThickness, 0x654321);
-    this.physics.add.existing(floor, true);
-    walls.add(floor);
+    // MUCH THICKER FLOOR with multiple segments to prevent tunneling
+    const floorY = boxY + halfHeight - wallThickness/2;
+    const floorThickness = wallThickness * 3; // Triple thickness
     
-    // Danger line
-    const dangerY = padding + 70;
-    this.add.line(containerWidth / 2, dangerY, 0, 0, containerWidth - padding * 2, 0, 0xFF0000)
-        .setLineWidth(2)
-        .setOrigin(0, 0.5)
-        .setDepth(100)
-        .setAlpha(0.7);
+    const floor = this.matter.add.rectangle(
+        boxX, 
+        floorY, 
+        boxWidth, 
+        floorThickness,
+        { isStatic: true, friction: 1, restitution: 0.1, slop: 0.01 }
+    );
     
-    // Create physics group for clowns
-    this.clownGroup = this.physics.add.group({
-        collideWorldBounds: false,
-        bounceX: 0.8,
-        bounceY: 0.6
-    });
+    // Extra safety floor below (invisible backup)
+    const safetyFloor = this.matter.add.rectangle(
+        boxX, 
+        floorY + 30, 
+        boxWidth, 
+        50,
+        { isStatic: true, friction: 1, restitution: 0 }
+    );
     
-    // Set up collisions
-    this.physics.add.collider(this.clownGroup, walls);
-    this.physics.add.collider(this.clownGroup, this.clownGroup, handleClownCollision, null, this);
+    // Game over zone (visual depth limit)
+    const dangerY = boxY - halfHeight + topMargin;
     
     // Store references
-    gameScene.walls = walls;
     gameScene.dangerY = dangerY;
     gameScene.containerWidth = containerWidth;
-    gameScene.playAreaLeft = playAreaLeft;
-    gameScene.playAreaRight = playAreaRight;
-    gameScene.playAreaBottom = playAreaBottom;
-    gameScene.padding = padding;
+    gameScene.boxX = boxX;
+    gameScene.boxY = boxY;
+    gameScene.boxWidth = boxWidth;
+    gameScene.boxHeight = boxHeight;
+    gameScene.halfWidth = halfWidth;
+    gameScene.halfHeight = halfHeight;
+    gameScene.wallThickness = wallThickness;
+    gameScene.playAreaLeft = boxX - halfWidth + wallThickness;
+    gameScene.playAreaRight = boxX + halfWidth - wallThickness;
     
     // Initialize next clown
     nextClownType = Phaser.Math.Between(0, 4);
@@ -314,6 +345,18 @@ function create() {
             playSound('drop');
         }
     });
+    
+    // Collision detection for merging
+    this.matter.world.on('collisionstart', (event) => {
+        event.pairs.forEach((pair) => {
+            const bodyA = pair.bodyA;
+            const bodyB = pair.bodyB;
+            
+            if (bodyA.gameObject && bodyB.gameObject) {
+                handleClownCollision(bodyA.gameObject, bodyB.gameObject);
+            }
+        });
+    });
 }
 
 function spawnPreviewClown() {
@@ -321,20 +364,20 @@ function spawnPreviewClown() {
     
     const clown = CLOWNS[nextClownType];
     const startX = gameScene.containerWidth / 2;
-    const startY = gameScene.padding + 50;
+    const startY = gameScene.boxY - gameScene.halfHeight + 40;
     
     // Create van sprite
     if (!vanSprite) {
-        vanSprite = gameScene.add.sprite(startX, startY - 30, 'van');
+        vanSprite = gameScene.add.sprite(startX, startY - 35, 'van');
         vanSprite.setDisplaySize(60, 40);
-        vanSprite.setDepth(10);
+        vanSprite.setDepth(1000);
     }
     
     // Create preview ball
     const preview = gameScene.add.sprite(startX, startY, `clown-${nextClownType}`);
     preview.setDisplaySize(clown.size, clown.size);
     preview.setAlpha(0.8);
-    preview.setDepth(9);
+    preview.setDepth(999);
     
     preview.clownType = nextClownType;
     preview.isPreview = true;
@@ -366,36 +409,39 @@ function dropClown() {
     const clownType = currentClown.clownType;
     const clown = CLOWNS[clownType];
     const x = currentClown.x;
-    const y = gameScene.padding + 70;
+    const y = gameScene.boxY - gameScene.halfHeight + 60;
     
     // Remove preview
     currentClown.destroy();
     currentClown = null;
     
-    // Create physics ball
+    // Create physics ball with Matter.js
     const ball = gameScene.add.sprite(x, y, `clown-${clownType}`);
     ball.setDisplaySize(clown.size, clown.size);
-    ball.setDepth(5);
+    ball.setDepth(100);
     
-    gameScene.physics.add.existing(ball);
-    const radius = clown.size / 2;
+    const radius = (clown.size / 2) * clown.hitboxScale;
     
-    // ⭐ USE CUSTOM HITBOX SCALE PER CLOWN TYPE
-    const hitboxRadius = radius * clown.hitboxScale;
-    ball.body.setCircle(hitboxRadius);
+    // Matter.js physics body
+    const physicsBody = gameScene.matter.add.circle(x, y, radius, {
+        restitution: 0.4,
+        friction: 0.8,
+        frictionAir: 0.01,
+        density: 0.001,
+        slop: 0.01
+    });
     
-    // Improved physics - based on Suika game
-    ball.body.setBounce(0.9, 0.9);
-    ball.body.setFriction(0.5, 0.5);
-    ball.body.setAngularDrag(400);
-    ball.body.setDrag(0.3);
-    ball.body.setMaxVelocity(900, 1500);
+    ball.setData('body', physicsBody);
+    // Allow natural rotation for smooth physics
     
     ball.clownType = clownType;
     ball.canMerge = true;
     ball.dangerTimer = 0;
+    ball.physicsBody = physicsBody;
     
-    gameScene.clownGroup.add(ball);
+    // Link sprite to physics body
+    physicsBody.gameObject = ball;
+    
     clownBodies.push(ball);
     
     // Prepare next clown
@@ -419,6 +465,11 @@ function handleClownCollision(obj1, obj2) {
     if (obj1.clownType !== obj2.clownType) return;
     if (obj1.clownType >= CLOWNS.length - 1) return;
     
+    // Check if they're close enough to merge
+    const distance = Phaser.Math.Distance.Between(obj1.x, obj1.y, obj2.x, obj2.y);
+    const clown = CLOWNS[obj1.clownType];
+    if (distance > clown.size * 1.2) return;
+    
     obj1.canMerge = false;
     obj2.canMerge = false;
     
@@ -431,71 +482,80 @@ function handleClownCollision(obj1, obj2) {
     // Play merge sound
     playSound('merge', newType);
     
-    score += newClown.score;
-    scoreValue.textContent = score;
+    updateScore(score + newClown.score);
     
-    if (score > bestScore) {
-        bestScore = score;
-        if (bestScoreValue) {
-            bestScoreValue.textContent = bestScore;
-        }
-        localStorage.setItem('bestScore', bestScore.toString());
-    }
-    
+    // Remove old bodies
     const idx1 = clownBodies.indexOf(obj1);
     const idx2 = clownBodies.indexOf(obj2);
     if (idx1 > -1) clownBodies.splice(idx1, 1);
     if (idx2 > -1) clownBodies.splice(idx2, 1);
     
-    gameScene.clownGroup.remove(obj1);
-    gameScene.clownGroup.remove(obj2);
+    if (obj1.physicsBody) gameScene.matter.world.remove(obj1.physicsBody);
+    if (obj2.physicsBody) gameScene.matter.world.remove(obj2.physicsBody);
+    
     obj1.destroy();
     obj2.destroy();
     
+    // Create new merged ball
     const newBall = gameScene.add.sprite(mergeX, mergeY, `clown-${newType}`);
     newBall.setDisplaySize(newClown.size, newClown.size);
-    newBall.setDepth(5);
+    newBall.setDepth(100);
     
-    gameScene.physics.add.existing(newBall);
-    const radius = newClown.size / 2;
+    const radius = (newClown.size / 2) * newClown.hitboxScale;
     
-    // ⭐ USE CUSTOM HITBOX SCALE PER CLOWN TYPE (SAME AS dropClown)
-    const hitboxRadius = radius * newClown.hitboxScale;
-    newBall.body.setCircle(hitboxRadius);
+    const physicsBody = gameScene.matter.add.circle(mergeX, mergeY, radius, {
+        restitution: 0.4,
+        friction: 0.8,
+        frictionAir: 0.01,
+        density: 0.001,
+        slop: 0.01
+    });
     
-    newBall.body.setBounce(0.9, 0.9);
-    newBall.body.setFriction(0.5, 0.5);
-    newBall.body.setAngularDrag(400);
-    newBall.body.setDrag(0.3);
-    newBall.body.setMaxVelocity(900, 1500);
-    newBall.body.setVelocity(0, -100);
+    gameScene.matter.body.setVelocity(physicsBody, { x: 0, y: -3 });
+    // Allow natural rotation
     
+    newBall.setData('body', physicsBody);
     newBall.clownType = newType;
     newBall.canMerge = true;
     newBall.dangerTimer = 0;
+    newBall.physicsBody = physicsBody;
     
-    gameScene.clownGroup.add(newBall);
+    physicsBody.gameObject = newBall;
+    
     clownBodies.push(newBall);
 }
 
 function update() {
     if (gameOver) return;
     
+    // Update sprite positions and rotation to match physics bodies
+    clownBodies.forEach(ball => {
+        if (ball && ball.active && ball.physicsBody) {
+            ball.x = ball.physicsBody.position.x;
+            ball.y = ball.physicsBody.position.y;
+            ball.rotation = ball.physicsBody.angle; // Sync rotation with physics
+        }
+    });
+    
+    // Check for game over
     let dangerousClown = false;
-    const dangerY = gameScene.dangerY || 120;
+    const dangerY = gameScene.dangerY;
     
     clownBodies.forEach(ball => {
-        if (!ball || !ball.active || !ball.body) return;
+        if (!ball || !ball.active || !ball.physicsBody) return;
         
-        const velocityY = Math.abs(ball.body.velocity.y);
+        const velocity = ball.physicsBody.velocity;
+        const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
         const topY = ball.y - ball.displayHeight / 2;
         
-        if (topY < dangerY && velocityY < 15) {
+        // If ball is above danger line and barely moving
+        if (topY < dangerY && speed < 0.5) {
             if (!ball.dangerTimer) {
                 ball.dangerTimer = 0;
             }
             ball.dangerTimer++;
             
+            // Game over after 2 seconds (120 frames at 60fps)
             if (ball.dangerTimer > 120) {
                 dangerousClown = true;
             }

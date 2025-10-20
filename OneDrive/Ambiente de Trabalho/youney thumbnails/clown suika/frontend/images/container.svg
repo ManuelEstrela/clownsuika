@@ -1,0 +1,98 @@
+<svg width="600" height="800" viewBox="0 0 600 800" xmlns="http://www.w3.org/2000/svg">
+  <!-- Define gradients for 3D effect -->
+  <defs>
+    <!-- Main box gradient -->
+    <linearGradient id="boxGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#C4A882;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#E8D4B8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#C4A882;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Left wall gradient (darker) -->
+    <linearGradient id="leftWallGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6B5645;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#9B8565;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Right wall gradient (darker) -->
+    <linearGradient id="rightWallGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#9B8565;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7B6855;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Bottom gradient -->
+    <linearGradient id="bottomGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#9B8565;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7B6855;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Top rim gradient -->
+    <linearGradient id="rimGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#F5E6D3;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#D4B896;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A08562;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Shadow -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="8"/>
+      <feOffset dx="4" dy="6" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.4"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Drop shadow behind box -->
+  <ellipse cx="300" cy="750" rx="240" ry="30" fill="#000000" opacity="0.2"/>
+  
+  <!-- Main container group -->
+  <g filter="url(#shadow)">
+    
+    <!-- Top rim (3D perspective) -->
+    <ellipse cx="300" cy="100" rx="250" ry="35" fill="url(#rimGradient)" stroke="#8B6F47" stroke-width="2"/>
+    
+    <!-- Top rim inner shadow -->
+    <ellipse cx="300" cy="100" rx="240" ry="30" fill="#B89968" opacity="0.3"/>
+    
+    <!-- Top rim highlight -->
+    <ellipse cx="300" cy="95" rx="230" ry="25" fill="#F5E6D3" opacity="0.4"/>
+    
+    <!-- Left wall -->
+    <path d="M 70 100 L 70 720 L 90 740 L 90 115 Z" fill="url(#leftWallGradient)" stroke="#5C4033" stroke-width="1"/>
+    
+    <!-- Right wall -->
+    <path d="M 530 100 L 530 720 L 510 740 L 510 115 Z" fill="url(#rightWallGradient)" stroke="#5C4033" stroke-width="1"/>
+    
+    <!-- Main front face -->
+    <rect x="90" y="115" width="420" height="625" fill="url(#boxGradient)" stroke="#8B6F47" stroke-width="2"/>
+    
+    <!-- Inner shadow at top -->
+    <rect x="90" y="115" width="420" height="40" fill="#000000" opacity="0.1"/>
+    
+    <!-- Bottom floor -->
+    <rect x="90" y="720" width="420" height="20" fill="url(#bottomGradient)" stroke="#5C4033" stroke-width="1"/>
+    
+    <!-- Bottom 3D edge -->
+    <path d="M 90 740 L 510 740 L 530 720 L 70 720 Z" fill="#6B5645" stroke="#5C4033" stroke-width="1"/>
+    
+    <!-- Vertical grain lines for wooden texture -->
+    <line x1="150" y1="115" x2="150" y2="740" stroke="#C4A882" stroke-width="1" opacity="0.3"/>
+    <line x1="220" y1="115" x2="220" y2="740" stroke="#D4B896" stroke-width="1" opacity="0.2"/>
+    <line x1="300" y1="115" x2="300" y2="740" stroke="#C4A882" stroke-width="1" opacity="0.25"/>
+    <line x1="380" y1="115" x2="380" y2="740" stroke="#D4B896" stroke-width="1" opacity="0.2"/>
+    <line x1="450" y1="115" x2="450" y2="740" stroke="#C4A882" stroke-width="1" opacity="0.3"/>
+    
+    <!-- Highlight on left edge -->
+    <line x1="92" y1="115" x2="92" y2="738" stroke="#F5E6D3" stroke-width="2" opacity="0.4"/>
+    
+    <!-- Inner border for depth -->
+    <rect x="92" y="117" width="416" height="621" fill="none" stroke="#F5E6D3" stroke-width="1" opacity="0.3"/>
+    
+  </g>
+  
+</svg>

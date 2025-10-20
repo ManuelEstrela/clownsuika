@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clown Suika Game</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-wrapper">
+        <!-- Header -->
+        <header class="game-header">
+            <h1>🤡 Clown Suika Game 🤡</h1>
+        </header>
+
+        <!-- Main Game Container -->
+        <div class="game-container">
+            <!-- Left Panel - Clown Info -->
+            <div class="side-panel left-panel">
+                <div class="panel-title">CLOWNS</div>
+                <div class="clown-list">
+                    <div class="clown-item">
+                        <img class="clown-icon" src="images/tessa.png" alt="Tessa">
+                        <span>Tessa</span>
+                        <span class="points">1</span>
+                    </div>
+                    <div class="clown-item">
+                        <img class="clown-icon" src="images/twinkles.png" alt="Twinkles">
+                        <span>Twinkles</span>
+                        <span class="points">3</span>
+                    </div>
+                    <div class="clown-item">
+                        <img class="clown-icon" src="images/reina.png" alt="Reina">
+                        <span>Reina</span>
+                        <span class="points">6</span>
+                    </div>
+                    <div class="clown-item">
+                        <img class="clown-icon" src="images/osvaldo.png" alt="Osvaldo">
+                        <span>Osvaldo</span>
+                        <span class="points">10</span>
+                    </div>
+                    <div class="clown-item">
+                        <img class="clown-icon" src="images/hazel.png" alt="Hazel">
+                        <span>Hazel</span>
+                        <span class="points">15</span>
+                    </div>
+                    <div class="clown-item">
+                        <img class="clown-icon" src="images/mumbles.png" alt="Mumbles">
+                        <span>Mumbles</span>
+                        <span class="points">21</span>
+                    </div>
+                    <div class="clown-item">
+                        <img class="clown-icon" src="images/sneaky.png" alt="Sneaky">
+                        <span>Sneaky</span>
+                        <span class="points">28</span>
+                    </div>
+                    <div class="clown-item">
+                        <img class="clown-icon" src="images/wendy.png" alt="Wendy">
+                        <span>Wendy</span>
+                        <span class="points">36</span>
+                    </div>
+                    <div class="clown-item">
+                        <img class="clown-icon" src="images/chatty.png" alt="Chatty">
+                        <span>Chatty</span>
+                        <span class="points">45</span>
+                    </div>
+                    <div class="clown-item">
+                        <img class="clown-icon" src="images/cups.png" alt="Cups">
+                        <span>Cups</span>
+                        <span class="points">55</span>
+                    </div>
+                    <div class="clown-item">
+                        <img class="clown-icon" src="images/kirk.png" alt="Kirk">
+                        <span>Kirk</span>
+                        <span class="points">66</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center - Game Canvas -->
+            <div class="center-panel">
+                <div class="score-display">
+                    <div class="score-label">SCORE</div>
+                    <div class="score-value" id="scoreValue">0</div>
+                </div>
+                <div class="next-clown">
+                    <span>NEXT</span>
+                    <div id="nextClownPreview"></div>
+                </div>
+                <div id="gameCanvas"></div>
+            </div>
+
+            <!-- Right Panel - Score and Leaderboard -->
+            <div class="side-panel right-panel">
+                <!-- Score Bubble -->
+                <div class="score-bubble">
+                    <div class="score-label">SCORE</div>
+                    <div class="score-value" id="scoreValue">0</div>
+                    <div class="best-score-section">
+                        Best<br>
+                        <span class="best-score-value" id="bestScore">0</span>
+                    </div>
+                </div>
+                
+                <!-- Leaderboard -->
+                <div class="panel-title">🏆 TOP SCORES 🏆</div>
+                <div id="leaderboardList" class="leaderboard-list">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Name Entry Modal -->
+    <div id="nameModal" class="modal">
+        <div class="modal-content">
+            <h2>Enter Your Name</h2>
+            <input type="text" id="playerName" placeholder="Your name" maxlength="20">
+            <button id="startButton" class="game-button">START GAME</button>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameOverModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Game Over!</h2>
+            <div class="final-score">
+                <div class="score-label">YOUR SCORE</div>
+                <div class="score-value" id="finalScoreValue">0</div>
+            </div>
+            <div id="rankDisplay" class="rank-display"></div>
+            <div id="gameOverLeaderboard" class="game-over-leaderboard"></div>
+            <button id="restartButton" class="game-button">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Phaser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.55.2/phaser.min.js"></script>
+    
+    <!-- Game Scripts -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>

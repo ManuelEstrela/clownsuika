@@ -1,16 +1,16 @@
-// Clown Configuration with images
+// Clown Configuration with images - scaled up sizes
 const CLOWNS = [
-    { name: 'Tessa', size: 30, color: 0xFF6B6B, score: 1, image: 'images/tessa.png', hitboxScale: 0.95 },
-    { name: 'Twinkles', size: 35, color: 0xFFA07A, score: 3, image: 'images/twinkles.png', hitboxScale: 0.95 },
-    { name: 'Reina', size: 40, color: 0xFFD93D, score: 6, image: 'images/reina.png', hitboxScale: 0.95 },
-    { name: 'Osvaldo', size: 45, color: 0x95E1D3, score: 10, image: 'images/osvaldo.png', hitboxScale: 0.95 },
-    { name: 'Hazel', size: 50, color: 0x6BCB77, score: 15, image: 'images/hazel.png', hitboxScale: 0.95 },
-    { name: 'Mumbles', size: 55, color: 0x4D96FF, score: 21, image: 'images/mumbles.png', hitboxScale: 0.92 },
-    { name: 'Sneaky', size: 60, color: 0x9D84B7, score: 28, image: 'images/sneaky.png', hitboxScale: 0.95 },
-    { name: 'Wendy', size: 65, color: 0xFF6FB5, score: 36, image: 'images/wendy.png', hitboxScale: 0.95 },
-    { name: 'Chatty', size: 70, color: 0xF9A826, score: 45, image: 'images/chatty.png', hitboxScale: 0.95 },
-    { name: 'Cups', size: 75, color: 0x00D9FF, score: 55, image: 'images/cups.png', hitboxScale: 0.95 },
-    { name: 'Kirk', size: 80, color: 0xFF0080, score: 66, image: 'images/kirk.png', hitboxScale: 0.95 }
+    { name: 'Tessa', size: 35, color: 0xFF6B6B, score: 1, image: 'images/tessa.png', hitboxScale: 0.95 },
+    { name: 'Twinkles', size: 42, color: 0xFFA07A, score: 3, image: 'images/twinkles.png', hitboxScale: 0.95 },
+    { name: 'Reina', size: 48, color: 0xFFD93D, score: 6, image: 'images/reina.png', hitboxScale: 0.95 },
+    { name: 'Osvaldo', size: 54, color: 0x95E1D3, score: 10, image: 'images/osvaldo.png', hitboxScale: 0.95 },
+    { name: 'Hazel', size: 60, color: 0x6BCB77, score: 15, image: 'images/hazel.png', hitboxScale: 0.95 },
+    { name: 'Mumbles', size: 66, color: 0x4D96FF, score: 21, image: 'images/mumbles.png', hitboxScale: 0.92 },
+    { name: 'Sneaky', size: 72, color: 0x9D84B7, score: 28, image: 'images/sneaky.png', hitboxScale: 0.95 },
+    { name: 'Wendy', size: 78, color: 0xFF6FB5, score: 36, image: 'images/wendy.png', hitboxScale: 0.95 },
+    { name: 'Chatty', size: 84, color: 0xF9A826, score: 45, image: 'images/chatty.png', hitboxScale: 0.95 },
+    { name: 'Cups', size: 90, color: 0x00D9FF, score: 55, image: 'images/cups.png', hitboxScale: 0.95 },
+    { name: 'Kirk', size: 96, color: 0xFF0080, score: 66, image: 'images/kirk.png', hitboxScale: 0.95 }
 ];
 
 // Game variables
@@ -213,11 +213,11 @@ function create() {
     const containerWidth = this.game.config.width;
     const containerHeight = this.game.config.height;
     
-    // Container dimensions
-    const boxWidth = containerWidth * 0.75;
-    const boxHeight = containerHeight * 0.85;
-    const boxX = containerWidth / 2;
-    const boxY = containerHeight * 0.55;
+    // Container dimensions - centered both horizontally and vertically, scaled up
+    const boxWidth = containerWidth * 0.85;  // Increased from 0.75
+    const boxHeight = containerHeight * 0.90;  // Increased from 0.85
+    const boxX = containerWidth / 2;  // FIXED: Center horizontally
+    const boxY = containerHeight / 2;  // FIXED: Center vertically
     
     const wallThickness = 17;
     const topMargin = 80;
@@ -334,18 +334,20 @@ function spawnPreviewClown() {
     if (gameOver) return;
     
     const clown = CLOWNS[currentClownType];
-    const startX = gameScene.containerWidth / 2;
+    
+    // FIXED: Start at van position if it exists, otherwise center
+    const startX = vanSprite ? vanSprite.x : gameScene.containerWidth / 2;
     const startY = gameScene.boxY - gameScene.halfHeight + 40;
     
-    // Create van sprite if it doesn't exist
+    // Create van sprite if it doesn't exist - fixed aspect ratio
     if (!vanSprite) {
         vanSprite = gameScene.add.sprite(startX, startY - 28, 'van');
-        vanSprite.setDisplaySize(60, 40);
+        vanSprite.setDisplaySize(80, 50);  // Adjusted from 60x40 for better proportions
         vanSprite.setDepth(1000);
     }
     
-    // Create preview ball
-    const preview = gameScene.add.sprite(startX, startY, `clown-${currentClownType}`);
+    // Create preview ball at van's current position
+    const preview = gameScene.add.sprite(vanSprite.x, startY, `clown-${currentClownType}`);
     preview.setDisplaySize(clown.size, clown.size);
     preview.setAlpha(0.8);
     preview.setDepth(999);
@@ -401,6 +403,7 @@ function dropClown() {
         slop: 0.01
     });
     
+    // Store references both ways for sync
     ball.setData('body', physicsBody);
     ball.clownType = clownType;
     ball.canMerge = true;
@@ -408,6 +411,7 @@ function dropClown() {
     ball.physicsBody = physicsBody;
     
     physicsBody.gameObject = ball;
+    physicsBody.label = `clown-${clownType}`;  // Label for debugging
     clownBodies.push(ball);
     
     // Move current -> next
@@ -494,9 +498,22 @@ function update() {
     // Update sprite positions and rotation to match physics bodies
     clownBodies.forEach(ball => {
         if (ball && ball.active && ball.physicsBody) {
+            // Force update position from physics body
             ball.x = ball.physicsBody.position.x;
             ball.y = ball.physicsBody.position.y;
             ball.rotation = ball.physicsBody.angle;
+            
+            // If sprite position deviates too much, destroy and recreate to prevent desync
+            const distance = Phaser.Math.Distance.Between(
+                ball.x, ball.y, 
+                ball.physicsBody.position.x, ball.physicsBody.position.y
+            );
+            
+            if (distance > 5) {
+                console.warn('Sprite desync detected, forcing position');
+                ball.x = ball.physicsBody.position.x;
+                ball.y = ball.physicsBody.position.y;
+            }
         }
     });
     

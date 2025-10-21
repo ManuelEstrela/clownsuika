@@ -54,6 +54,7 @@ html, body {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    height: 100%; /* Take full height of grid cell */
 }
 
 /* Left Panel - Clown List */
@@ -123,6 +124,8 @@ html, body {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    height: 100%; /* Take full height */
+    justify-content: center; /* Center content vertically */
 }
 
 .score-display {

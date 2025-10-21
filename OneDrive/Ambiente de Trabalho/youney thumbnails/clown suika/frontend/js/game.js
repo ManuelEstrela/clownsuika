@@ -5,7 +5,7 @@ const CLOWNS = [
     { name: 'Reina', size: 40, color: 0xFFD93D, score: 6, image: 'images/reina.png', hitboxScale: 0.95 },
     { name: 'Osvaldo', size: 45, color: 0x95E1D3, score: 10, image: 'images/osvaldo.png', hitboxScale: 0.95 },
     { name: 'Hazel', size: 50, color: 0x6BCB77, score: 15, image: 'images/hazel.png', hitboxScale: 0.95 },
-    { name: 'Mumbles', size: 55, color: 0x4D96FF, score: 21, image: 'images/mumbles.png', hitboxScale: 0.95 },
+    { name: 'Mumbles', size: 55, color: 0x4D96FF, score: 21, image: 'images/mumbles.png', hitboxScale: 0.92 },
     { name: 'Sneaky', size: 60, color: 0x9D84B7, score: 28, image: 'images/sneaky.png', hitboxScale: 0.95 },
     { name: 'Wendy', size: 65, color: 0xFF6FB5, score: 36, image: 'images/wendy.png', hitboxScale: 0.95 },
     { name: 'Chatty', size: 70, color: 0xF9A826, score: 45, image: 'images/chatty.png', hitboxScale: 0.95 },
@@ -17,6 +17,7 @@ const CLOWNS = [
 let playerName = '';
 let game;
 let currentClown;
+let currentClownType;  // NEW: Track current clown type separately
 let nextClownType;
 let score = 0;
 let bestScore = 0;
@@ -203,7 +204,7 @@ function preload() {
         this.load.image(`clown-${index}`, clown.image);
     });
     this.load.image('van', 'images/van.png');
-    this.load.image('container', 'images/container.png'); // Load your custom container
+    this.load.image('container', 'images/container.png');
 }
 
 function create() {
@@ -218,18 +219,18 @@ function create() {
     const boxX = containerWidth / 2;
     const boxY = containerHeight * 0.55;
     
-    const wallThickness = 27;
+    const wallThickness = 17;
     const topMargin = 80;
     
     const halfWidth = boxWidth / 2;
     const halfHeight = boxHeight / 2;
     
-    // Create container sprite from your custom image (BACKGROUND - depth 0)
+    // Create container sprite
     const containerSprite = this.add.sprite(boxX, boxY, 'container');
     containerSprite.setDisplaySize(boxWidth, boxHeight);
-    containerSprite.setDepth(0); // Behind everything else
+    containerSprite.setDepth(0);
     
-    // Physics walls - invisible but functional
+    // Physics walls
     const leftWall = this.matter.add.rectangle(
         boxX - halfWidth + wallThickness/2, 
         boxY, 
@@ -246,9 +247,9 @@ function create() {
         { isStatic: true, friction: 0.8, restitution: 0.3 }
     );
     
-    // MUCH THICKER FLOOR with multiple segments to prevent tunneling
+    // Floor
     const floorY = boxY + halfHeight - wallThickness/2;
-    const floorThickness = wallThickness * 3; // Triple thickness
+    const floorThickness = wallThickness * 7;
     
     const floor = this.matter.add.rectangle(
         boxX, 
@@ -258,7 +259,7 @@ function create() {
         { isStatic: true, friction: 1, restitution: 0.1, slop: 0.01 }
     );
     
-    // Extra safety floor below (invisible backup)
+    // Safety floor
     const safetyFloor = this.matter.add.rectangle(
         boxX, 
         floorY + 30, 
@@ -267,7 +268,7 @@ function create() {
         { isStatic: true, friction: 1, restitution: 0 }
     );
     
-    // Game over zone (visual depth limit)
+    // Game over zone
     const dangerY = boxY - halfHeight + topMargin;
     
     // Store references
@@ -283,22 +284,27 @@ function create() {
     gameScene.playAreaLeft = boxX - halfWidth + wallThickness;
     gameScene.playAreaRight = boxX + halfWidth - wallThickness;
     
-    // Initialize next clown
+    // Initialize clown types - current and next
+    currentClownType = Phaser.Math.Between(0, 4);
     nextClownType = Phaser.Math.Between(0, 4);
     updateNextPreview();
     
     // Spawn preview clown
     spawnPreviewClown.call(this);
     
-    // Mouse movement for preview
+    // Mouse movement for preview - ALWAYS UPDATE
     this.input.on('pointermove', (pointer) => {
-        if (vanSprite && !gameOver && canDrop) {
-            const clown = CLOWNS[nextClownType];
+        if (!gameOver) {
+            const clown = CLOWNS[currentClownType];
             const minX = gameScene.playAreaLeft + clown.size / 2 + 5;
             const maxX = gameScene.playAreaRight - clown.size / 2 - 5;
-            vanSprite.x = Phaser.Math.Clamp(pointer.x, minX, maxX);
+            const clampedX = Phaser.Math.Clamp(pointer.x, minX, maxX);
+            
+            if (vanSprite) {
+                vanSprite.x = clampedX;
+            }
             if (currentClown) {
-                currentClown.x = vanSprite.x;
+                currentClown.x = clampedX;
             }
         }
     });
@@ -311,7 +317,7 @@ function create() {
         }
     });
     
-    // Collision detection for merging
+    // Collision detection
     this.matter.world.on('collisionstart', (event) => {
         event.pairs.forEach((pair) => {
             const bodyA = pair.bodyA;
@@ -327,24 +333,24 @@ function create() {
 function spawnPreviewClown() {
     if (gameOver) return;
     
-    const clown = CLOWNS[nextClownType];
+    const clown = CLOWNS[currentClownType];
     const startX = gameScene.containerWidth / 2;
     const startY = gameScene.boxY - gameScene.halfHeight + 40;
     
-    // Create van sprite
+    // Create van sprite if it doesn't exist
     if (!vanSprite) {
-        vanSprite = gameScene.add.sprite(startX, startY - 35, 'van');
+        vanSprite = gameScene.add.sprite(startX, startY - 28, 'van');
         vanSprite.setDisplaySize(60, 40);
-        vanSprite.setDepth(1000); // Above container and clowns
+        vanSprite.setDepth(1000);
     }
     
     // Create preview ball
-    const preview = gameScene.add.sprite(startX, startY, `clown-${nextClownType}`);
+    const preview = gameScene.add.sprite(startX, startY, `clown-${currentClownType}`);
     preview.setDisplaySize(clown.size, clown.size);
     preview.setAlpha(0.8);
-    preview.setDepth(999); // Above container but below van
+    preview.setDepth(999);
     
-    preview.clownType = nextClownType;
+    preview.clownType = currentClownType;
     preview.isPreview = true;
     preview.canMerge = true;
     
@@ -380,14 +386,13 @@ function dropClown() {
     currentClown.destroy();
     currentClown = null;
     
-    // Create physics ball with Matter.js
+    // Create physics ball
     const ball = gameScene.add.sprite(x, y, `clown-${clownType}`);
     ball.setDisplaySize(clown.size, clown.size);
-    ball.setDepth(100); // Above container (depth 0) but below van/preview (999-1000)
+    ball.setDepth(100);
     
     const radius = (clown.size / 2) * clown.hitboxScale;
     
-    // Matter.js physics body
     const physicsBody = gameScene.matter.add.circle(x, y, radius, {
         restitution: 0.4,
         friction: 0.8,
@@ -397,24 +402,23 @@ function dropClown() {
     });
     
     ball.setData('body', physicsBody);
-    
     ball.clownType = clownType;
     ball.canMerge = true;
     ball.dangerTimer = 0;
     ball.physicsBody = physicsBody;
     
-    // Link sprite to physics body
     physicsBody.gameObject = ball;
-    
     clownBodies.push(ball);
     
-    // Prepare next clown
-    const currentType = clownType;
-    nextClownType = Phaser.Math.Between(0, Math.min(4, currentType + 1));
+    // Move current -> next
+    currentClownType = nextClownType;
+    
+    // Generate new next clown
+    nextClownType = Phaser.Math.Between(0, Math.min(4, clownType + 1));
     updateNextPreview();
     
-    // Allow dropping again
-    gameScene.time.delayedCall(500, () => {
+    // Spawn new preview immediately with short delay
+    gameScene.time.delayedCall(200, () => {
         if (!gameOver) {
             canDrop = true;
             spawnPreviewClown.call(gameScene);
@@ -429,7 +433,6 @@ function handleClownCollision(obj1, obj2) {
     if (obj1.clownType !== obj2.clownType) return;
     if (obj1.clownType >= CLOWNS.length - 1) return;
     
-    // Check if they're close enough to merge
     const distance = Phaser.Math.Distance.Between(obj1.x, obj1.y, obj2.x, obj2.y);
     const clown = CLOWNS[obj1.clownType];
     if (distance > clown.size * 1.2) return;
@@ -443,9 +446,7 @@ function handleClownCollision(obj1, obj2) {
     const mergeX = (obj1.x + obj2.x) / 2;
     const mergeY = (obj1.y + obj2.y) / 2;
     
-    // Play merge sound
     playSound('merge', newType);
-    
     updateScore(score + newClown.score);
     
     // Remove old bodies
@@ -463,7 +464,7 @@ function handleClownCollision(obj1, obj2) {
     // Create new merged ball
     const newBall = gameScene.add.sprite(mergeX, mergeY, `clown-${newType}`);
     newBall.setDisplaySize(newClown.size, newClown.size);
-    newBall.setDepth(100); // Same depth as other clown balls
+    newBall.setDepth(100);
     
     const radius = (newClown.size / 2) * newClown.hitboxScale;
     
@@ -484,7 +485,6 @@ function handleClownCollision(obj1, obj2) {
     newBall.physicsBody = physicsBody;
     
     physicsBody.gameObject = newBall;
-    
     clownBodies.push(newBall);
 }
 
@@ -496,7 +496,7 @@ function update() {
         if (ball && ball.active && ball.physicsBody) {
             ball.x = ball.physicsBody.position.x;
             ball.y = ball.physicsBody.position.y;
-            ball.rotation = ball.physicsBody.angle; // Sync rotation with physics
+            ball.rotation = ball.physicsBody.angle;
         }
     });
     
@@ -511,14 +511,12 @@ function update() {
         const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
         const topY = ball.y - ball.displayHeight / 2;
         
-        // If ball is above danger line and barely moving
         if (topY < dangerY && speed < 0.5) {
             if (!ball.dangerTimer) {
                 ball.dangerTimer = 0;
             }
             ball.dangerTimer++;
             
-            // Game over after 2 seconds (120 frames at 60fps)
             if (ball.dangerTimer > 120) {
                 dangerousClown = true;
             }
